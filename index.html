@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>eThrust — High-Temperature Superconducting Magnets</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Exo+2:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { font-family: 'Exo 2', sans-serif; background: #020914; color: #e0f4ff; overflow-x: hidden; }
+#stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+.nebula {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 65% 45% at 10% 20%, rgba(100,40,200,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 55% 40% at 90% 75%, rgba(0,160,210,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 50% at 50% 100%, rgba(255,180,0,0.05) 0%, transparent 55%);
+}
+#app { position: relative; z-index: 1; min-height: 100vh; }
+
+/* NAV */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+  height: 64px; background: rgba(2,9,20,0.9); backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0,229,255,0.1);
+  display: flex; align-items: center; justify-content: space-between; padding: 0 2rem;
+}
+.logo { display: flex; align-items: center; gap: 10px; cursor: pointer; text-decoration: none; }
+.logo-ring {
+  width: 30px; height: 30px; border: 2px solid #00e5ff; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  animation: spin 8s linear infinite; flex-shrink: 0;
+}
+.logo-ring::before { content:''; width:8px; height:8px; background:#00e5ff; border-radius:50%; box-shadow:0 0 8px #00e5ff; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.logo-text {
+  font-family: 'Orbitron', monospace; font-weight: 900; font-size: 1.4rem;
+  letter-spacing: 0.02em; line-height: 1;
+}
+.logo-e { color: #00e5ff; }
+.logo-t { color: #ffc107; }
+.nav-links { display: flex; align-items: center; gap: 2px; list-style: none; }
+.nav-links li { position: relative; }
+.nb {
+  font-family: 'Exo 2', sans-serif; font-size: 0.78rem; font-weight: 600;
+  letter-spacing: 0.07em; text-transform: uppercase;
+  color: #7ea8c4; background: none; border: none;
+  padding: 0.4rem 0.75rem; border-radius: 4px; cursor: pointer;
+  transition: color .2s, background .2s; white-space: nowrap;
+}
+.nb:hover, .nb.on { color: #00e5ff; background: rgba(0,229,255,0.08); }
+.nb.cta { background: linear-gradient(135deg,#00e5ff,#0096aa); color: #020914; font-weight: 700; padding: 0.4rem 1rem; }
+.nb.cta:hover { opacity: 0.85; }
+.drop { display: none; position: absolute; top: calc(100% + 6px); left: 0; background: rgba(4,14,32,0.98); border: 1px solid rgba(0,229,255,0.15); border-radius: 8px; min-width: 170px; overflow: hidden; z-index: 1000; }
+.nav-links li:hover .drop { display: block; }
+.drop button {
+  display: block; width: 100%; text-align: left;
+  font-family: 'Exo 2', sans-serif; font-size: 0.76rem; font-weight: 500;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: #7ea8c4; background: none; border: none; border-bottom: 1px solid rgba(0,229,255,0.06);
+  padding: 0.65rem 1.1rem; cursor: pointer; transition: color .15s, background .15s;
+}
+.drop button:last-child { border-bottom: none; }
+.drop button:hover { color: #00e5ff; background: rgba(0,229,255,0.07); }
+.burger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; }
+.burger span { display: block; width: 22px; height: 2px; background: #00e5ff; border-radius: 2px; }
+.mobnav {
+  display: none; position: fixed; top: 64px; left: 0; right: 0; bottom: 0;
+  background: rgba(2,9,20,0.97); z-index: 998;
+  padding: 1.5rem; overflow-y: auto; flex-direction: column; gap: 0.3rem;
+}
+.mobnav button {
+  font-family: 'Exo 2', sans-serif; font-size: 1rem; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: #7ea8c4; background: none; border: none;
+  padding: 0.85rem 1rem; text-align: left; cursor: pointer; width: 100%;
+  border-radius: 6px; transition: color .2s, background .2s;
+}
+.mobnav button:hover { color: #00e5ff; background: rgba(0,229,255,0.07); }
+.msep { font-family: 'Share Tech Mono', monospace; font-size: 0.68rem; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(0,229,255,0.35); padding: 0.8rem 1rem 0.3rem; }
+
+/* PAGES - all hidden; JS shows them */
+.page { display: none; padding-top: 64px; min-height: 100vh; }
+
+/* SHARED */
+.wrap { max-width: 1160px; margin: 0 auto; padding: 0 2rem; }
+.sec-label { font-family: 'Share Tech Mono', monospace; font-size: 0.68rem; letter-spacing: 0.35em; text-transform: uppercase; color: #00e5ff; margin-bottom: 0.7rem; }
+.sec-title { font-family: 'Orbitron', monospace; font-size: clamp(1.9rem,4.5vw,3.2rem); font-weight: 900; line-height: 1.1; }
+.sec-title .c { color: #00e5ff; }
+.sec-title .g { color: #ffc107; }
+.sec-body { font-size: 1rem; line-height: 1.8; color: #7ea8c4; margin-top: 1rem; max-width: 760px; }
+.gline { width: 70px; height: 2px; background: linear-gradient(90deg,transparent,#00e5ff,transparent); margin: 1.2rem 0; }
+.gline.gold { background: linear-gradient(90deg,transparent,#ffc107,transparent); }
+.card { background: rgba(0,18,45,0.6); border: 1px solid rgba(0,229,255,0.15); border-radius: 14px; padding: 1.8rem; backdrop-filter: blur(10px); transition: border-color .3s, transform .3s; }
+.card:hover { border-color: rgba(0,229,255,0.4); transform: translateY(-3px); }
+.card.gold-c { border-color: rgba(255,193,7,0.18); }
+.card.gold-c:hover { border-color: rgba(255,193,7,0.45); }
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.6rem; }
+.g3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.6rem; }
+.ga { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 1.6rem; }
+.btn { font-family: 'Orbitron', monospace; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 0.85rem 2rem; border-radius: 6px; border: none; cursor: pointer; transition: transform .2s, box-shadow .2s; }
+.btn-p { background: linear-gradient(135deg,#00e5ff,#0096aa); color: #020914; box-shadow: 0 0 22px rgba(0,229,255,0.28); }
+.btn-p:hover { transform: translateY(-2px); box-shadow: 0 0 36px rgba(0,229,255,0.48); }
+.btn-s { background: transparent; color: #e0f4ff; border: 1px solid rgba(0,229,255,0.4); }
+.btn-s:hover { border-color: #00e5ff; background: rgba(0,229,255,0.07); }
+
+/* HOME */
+#pg-home { flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: calc(64px + 3rem) 2rem 5rem; position: relative; }
+.rings { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; overflow: hidden; z-index: -1; }
+.ring { position: absolute; width: 520px; height: 520px; border-radius: 50%; border: 1px solid rgba(0,229,255,0.07); animation: pulse 4s ease-out infinite; }
+.ring:nth-child(2){animation-delay:1.3s} .ring:nth-child(3){animation-delay:2.6s}
+@keyframes pulse { 0%{transform:scale(.15);opacity:1} 100%{transform:scale(1.6);opacity:0} }
+.hero-badge { font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; letter-spacing: 0.28em; text-transform: uppercase; color: #00e5ff; border: 1px solid rgba(0,229,255,0.28); background: rgba(0,229,255,0.06); padding: 0.38rem 1.2rem; border-radius: 20px; margin-bottom: 1.6rem; }
+.hero-title { font-family: 'Orbitron', monospace; font-size: clamp(2.6rem,6.5vw,5.2rem); font-weight: 900; line-height: 1.05; margin-bottom: 1.4rem; }
+.hero-title .c { color: #00e5ff; }
+.hero-title .g { color: #ffc107; }
+.hero-sub { font-size: clamp(0.95rem,2vw,1.2rem); font-weight: 300; color: #7ea8c4; max-width: 640px; line-height: 1.75; margin-bottom: 2.2rem; }
+.btn-row { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+.hero-stats { display: flex; gap: 2.5rem; margin-top: 4rem; flex-wrap: wrap; justify-content: center; }
+.stat-num { font-family: 'Orbitron', monospace; font-size: 1.9rem; font-weight: 900; color: #00e5ff; }
+.stat-lbl { font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: #7ea8c4; margin-top: 0.25rem; }
+
+/* VISION */
+.vm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; align-items: start; margin-top: 2.5rem; }
+.statement { font-family: 'Orbitron', monospace; font-size: clamp(1.1rem,2.2vw,1.5rem); font-weight: 700; line-height: 1.55; color: #e0f4ff; }
+.pillar { display: flex; gap: 0.9rem; align-items: flex-start; background: rgba(0,18,45,0.45); border: 1px solid rgba(0,229,255,0.1); border-radius: 10px; padding: 1.1rem 1.3rem; margin-bottom: 1rem; }
+.pillar-ico { font-size: 1.4rem; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: rgba(0,229,255,0.07); border-radius: 8px; flex-shrink: 0; }
+.pillar h4 { font-family: 'Orbitron', monospace; font-size: 0.8rem; font-weight: 700; color: #00e5ff; margin-bottom: 0.3rem; letter-spacing: 0.04em; }
+.pillar p { font-size: 0.86rem; color: #7ea8c4; line-height: 1.55; }
+
+/* MISSION */
+.mcard h3 { font-family: 'Orbitron', monospace; font-size: 0.88rem; font-weight: 700; color: #ffc107; margin-bottom: 0.6rem; letter-spacing: 0.05em; }
+.mcard p { font-size: 0.9rem; color: #7ea8c4; line-height: 1.65; }
+
+/* PRODUCTS */
+.prod-tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 2rem; }
+.ptab { font-family: 'Orbitron', monospace; font-size: 0.73rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.5rem 1.3rem; border-radius: 5px; border: 1px solid rgba(0,229,255,0.2); background: rgba(0,229,255,0.04); color: #7ea8c4; cursor: pointer; transition: all .2s; }
+.ptab:hover, .ptab.on { color: #00e5ff; border-color: #00e5ff; background: rgba(0,229,255,0.1); box-shadow: 0 0 14px rgba(0,229,255,0.18); }
+.ppanel { margin-top: 2rem; }
+.badge { display: inline-block; font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; letter-spacing: 0.18em; padding: 0.25rem 0.7rem; border-radius: 20px; margin-bottom: 1rem; }
+.b-green { background: rgba(0,230,118,0.1); color: #00e676; border: 1px solid rgba(0,230,118,0.3); }
+.b-gold  { background: rgba(255,193,7,0.1);  color: #ffc107; border: 1px solid rgba(255,193,7,0.3); }
+.b-purp  { background: rgba(167,139,250,0.1); color: #a78bfa; border: 1px solid rgba(167,139,250,0.3); }
+.prod-title { font-family: 'Orbitron', monospace; font-size: 1.6rem; font-weight: 900; margin-bottom: 0.4rem; }
+.prod-sub { font-size: 0.9rem; color: #7ea8c4; margin-bottom: 1.6rem; line-height: 1.6; }
+.spec-col h5 { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.15em; color: #7ea8c4; margin-bottom: 0.6rem; }
+.slist { list-style: none; display: flex; flex-direction: column; gap: 0.45rem; }
+.slist li { font-size: 0.87rem; color: #7ea8c4; display: flex; gap: 0.6rem; align-items: baseline; }
+.slist li::before { content: '▸'; color: #00e5ff; font-size: 0.65rem; flex-shrink: 0; }
+.slist li strong { color: #e0f4ff; font-weight: 600; }
+
+/* APPLICATIONS */
+.app-tabs { display: flex; gap: 0.45rem; flex-wrap: wrap; max-width: 1160px; margin: 1.5rem auto 0; padding: 0 2rem; }
+.atab { font-family: 'Exo 2', sans-serif; font-size: 0.76rem; font-weight: 600; padding: 0.45rem 1rem; border-radius: 5px; border: 1px solid rgba(255,193,7,0.2); background: rgba(255,193,7,0.04); color: #7ea8c4; cursor: pointer; white-space: nowrap; transition: all .2s; }
+.atab:hover, .atab.on { color: #ffc107; border-color: #ffc107; background: rgba(255,193,7,0.09); box-shadow: 0 0 12px rgba(255,193,7,0.18); }
+.apanel { display: none; }
+.apanel h2 { font-family: 'Orbitron', monospace; font-size: clamp(1.3rem,3vw,1.85rem); font-weight: 800; line-height: 1.25; margin-bottom: 0.4rem; }
+.apanel h2 span { color: #ffc107; }
+.atag { font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; letter-spacing: 0.12em; color: #00e5ff; margin-bottom: 1rem; }
+.apanel p { font-size: 0.93rem; color: #7ea8c4; line-height: 1.75; margin-bottom: 0.9rem; }
+.aspec { display: flex; gap: 0.9rem; background: rgba(0,18,45,0.5); border: 1px solid rgba(255,193,7,0.12); border-radius: 9px; padding: 0.9rem 1.1rem; margin-bottom: 0.9rem; }
+.aspec-num { font-family: 'Orbitron', monospace; font-size: 1.35rem; font-weight: 900; color: #ffc107; line-height: 1; flex-shrink: 0; width: 56px; text-align: center; }
+.aspec h4 { font-size: 0.86rem; font-weight: 700; color: #e0f4ff; margin-bottom: 0.18rem; }
+.aspec p  { font-size: 0.8rem; color: #7ea8c4; line-height: 1.5; margin: 0; }
+.app-icon { width: 100%; aspect-ratio: 16/9; background: radial-gradient(ellipse at center,rgba(255,193,7,0.07),rgba(2,9,20,0.8)); border: 1px solid rgba(255,193,7,0.12); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 5rem; margin-bottom: 1rem; opacity: 0.75; }
+
+/* TEAM */
+.team-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.8rem; margin-top: 2.5rem; }
+.tcard { text-align: center; }
+.av { width: 90px; height: 90px; border-radius: 50%; border: 2px solid #00e5ff; background: radial-gradient(circle,rgba(0,229,255,0.1),rgba(2,9,20,0.8)); margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-family: 'Orbitron', monospace; font-size: 1.3rem; font-weight: 900; color: #00e5ff; box-shadow: 0 0 20px rgba(0,229,255,0.18); }
+.av.gd { border-color: #ffc107; color: #ffc107; box-shadow: 0 0 20px rgba(255,193,7,0.18); }
+.tname { font-family: 'Orbitron', monospace; font-size: 0.92rem; font-weight: 700; margin-bottom: 0.25rem; }
+.trole { font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; letter-spacing: 0.15em; color: #00e5ff; margin-bottom: 0.7rem; }
+.trole.gd { color: #ffc107; }
+.tdesc { font-size: 0.86rem; color: #7ea8c4; line-height: 1.6; }
+
+/* JOIN */
+.join-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2.5rem; }
+.jcard h3 { font-family: 'Orbitron', monospace; font-size: 1.15rem; font-weight: 800; margin-bottom: 0.75rem; }
+.jcard h3 span { color: #ffc107; }
+.jcard > p { font-size: 0.9rem; color: #7ea8c4; line-height: 1.7; margin-bottom: 1.2rem; }
+.jlist { list-style: none; margin-bottom: 1.2rem; display: flex; flex-direction: column; gap: 0.45rem; }
+.jlist li { font-size: 0.87rem; color: #7ea8c4; display: flex; gap: 0.6rem; align-items: center; }
+.jlist li::before { content: '◈'; color: #ffc107; font-size: 0.65rem; flex-shrink: 0; }
+.jnote { font-size: 0.84rem; color: #7ea8c4; line-height: 1.65; margin-bottom: 1.2rem; font-style: italic; }
+
+/* CONTACT */
+.cgrid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 2.5rem; margin-top: 2.5rem; align-items: start; }
+.cinfo-title { font-family: 'Orbitron', monospace; font-size: 0.9rem; font-weight: 700; color: #00e5ff; margin-bottom: 1rem; }
+.citem { display: flex; gap: 0.8rem; align-items: flex-start; margin-bottom: 1.1rem; }
+.cico { width: 36px; height: 36px; border-radius: 7px; border: 1px solid rgba(0,229,255,0.15); background: rgba(0,229,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+.clbl { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.12em; color: #7ea8c4; margin-bottom: 0.18rem; }
+.cval { font-size: 0.9rem; color: #e0f4ff; }
+.cval a { color: #00e5ff; text-decoration: none; }
+.cval a:hover { text-decoration: underline; }
+.cform { display: flex; flex-direction: column; gap: 1rem; }
+.frow { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.fg { display: flex; flex-direction: column; gap: 0.35rem; }
+.fg label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.12em; color: #7ea8c4; }
+.fg input, .fg textarea, .fg select { background: rgba(0,18,45,0.65); border: 1px solid rgba(0,229,255,0.18); border-radius: 7px; padding: 0.75rem 1rem; color: #e0f4ff; font-family: 'Exo 2', sans-serif; font-size: 0.9rem; outline: none; resize: vertical; transition: border-color .2s; }
+.fg input:focus, .fg textarea:focus, .fg select:focus { border-color: #00e5ff; box-shadow: 0 0 10px rgba(0,229,255,0.1); }
+.fg select option { background: #020914; }
+.fsub { font-family: 'Orbitron', monospace; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 0.95rem; border-radius: 7px; border: none; background: linear-gradient(135deg,#00e5ff,#0096aa); color: #020914; cursor: pointer; width: 100%; transition: transform .2s, box-shadow .2s; }
+.fsub:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,229,255,0.38); }
+
+/* FOOTER */
+footer { position: relative; z-index: 1; border-top: 1px solid rgba(0,229,255,0.1); padding: 2rem 2.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+.foot-brand { font-family: 'Orbitron', monospace; font-size: 1.1rem; font-weight: 900; }
+.foot-copy { font-size: 0.76rem; color: #7ea8c4; }
+.foot-links { display: flex; gap: 1.5rem; }
+.foot-links a { font-size: 0.76rem; color: #7ea8c4; text-decoration: none; transition: color .2s; }
+.foot-links a:hover { color: #00e5ff; }
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .vm-grid,.g2,.cgrid,.join-grid{grid-template-columns:1fr}
+  .g3,.team-grid{grid-template-columns:1fr 1fr}
+  .frow{grid-template-columns:1fr}
+}
+@media(max-width:680px){
+  .nav-links{display:none}
+  .burger{display:flex}
+  .g3,.team-grid{grid-template-columns:1fr}
+  .hero-title{font-size:2.4rem}
+  footer{flex-direction:column;text-align:center}
+}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div class="nebula"></div>
+<div id="app">
+
+<!-- NAV -->
+<nav>
+  <div class="logo" onclick="go('home')">
+    <div class="logo-ring"></div>
+    <div class="logo-text"><span class="logo-e">e</span><span class="logo-t">Thrust</span></div>
+  </div>
+  <ul class="nav-links" id="desknav">
+    <li><button class="nb" id="nb-home" onclick="go('home')">Home</button></li>
+    <li><button class="nb" id="nb-vision" onclick="go('vision')">Vision</button></li>
+    <li><button class="nb" id="nb-mission" onclick="go('mission')">Mission</button></li>
+    <li>
+      <button class="nb" id="nb-products" onclick="go('products')">Products ▾</button>
+      <div class="drop">
+        <button onclick="go('products');prodTab('2g')">2G REBCO</button>
+        <button onclick="go('products');prodTab('3g')">3G Laser-Printed</button>
+        <button onclick="go('products');prodTab('4g')">4G DMTAM</button>
+      </div>
+    </li>
+    <li><button class="nb" id="nb-applications" onclick="go('applications')">Applications ✦</button></li>
+    <li><button class="nb" id="nb-team" onclick="go('team')">Team</button></li>
+    <li>
+      <button class="nb" id="nb-joinus" onclick="go('joinus')">Join Us ▾</button>
+      <div class="drop">
+        <button onclick="go('joinus')">Get Onboard</button>
+        <button onclick="go('joinus')">Partner With Us</button>
+      </div>
+    </li>
+    <li><button class="nb cta" id="nb-contact" onclick="go('contact')">Contact Us</button></li>
+  </ul>
+  <button class="burger" onclick="toggleMob()"><span></span><span></span><span></span></button>
+</nav>
+
+<!-- MOBILE NAV -->
+<div class="mobnav" id="mobnav">
+  <div class="msep">Navigation</div>
+  <button onclick="go('home');closeMob()">Home</button>
+  <button onclick="go('vision');closeMob()">Vision</button>
+  <button onclick="go('mission');closeMob()">Mission</button>
+  <div class="msep">Products</div>
+  <button onclick="go('products');prodTab('2g');closeMob()">2G REBCO</button>
+  <button onclick="go('products');prodTab('3g');closeMob()">3G Laser-Printed</button>
+  <button onclick="go('products');prodTab('4g');closeMob()">4G DMTAM</button>
+  <div class="msep">More</div>
+  <button onclick="go('applications');closeMob()">Applications ✦</button>
+  <button onclick="go('team');closeMob()">Team</button>
+  <button onclick="go('joinus');closeMob()">Join Us</button>
+  <button onclick="go('contact');closeMob()" style="color:#00e5ff">Contact Us</button>
+</div>
+
+<!-- HOME -->
+<div id="pg-home" class="page" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:calc(64px + 3rem) 2rem 5rem;position:relative">
+  <div class="rings"><div class="ring"></div><div class="ring"></div><div class="ring"></div></div>
+  <div class="hero-badge">⬡ Next-Generation High-Temperature Superconducting Technology</div>
+  <h1 class="hero-title">Bending <span class="c">Physics</span>.<br>Building the <span class="g">Future</span>.</h1>
+  <p class="hero-sub">eThrust is a digital foundry engineering the next generation of HTS magnets — from 2G REBCO windings to 4G 3D-printed superconductors. Powering fusion reactors, space thrusters, MRI machines, and beyond.</p>
+  <div class="btn-row">
+    <button class="btn btn-p" onclick="go('products')">Explore Products</button>
+    <button class="btn btn-s" onclick="go('applications')">See Applications ✦</button>
+  </div>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num">26.86 T</div><div class="stat-lbl">Peak Field Demonstrated</div></div>
+    <div class="stat"><div class="stat-num">38 K</div><div class="stat-lbl">Operating Temperature</div></div>
+    <div class="stat"><div class="stat-num">3 Gen</div><div class="stat-lbl">Technology Roadmap</div></div>
+    <div class="stat"><div class="stat-num">50%</div><div class="stat-lbl">Weight Reduction vs 1G</div></div>
+  </div>
+</div>
+
+<!-- VISION -->
+<div id="pg-vision" class="page">
+  <div class="wrap" style="padding-top:4rem;padding-bottom:4rem">
+    <div class="sec-label">// vision.md</div>
+    <h1 class="sec-title">Our <span class="c">Vision</span></h1>
+    <div class="gline"></div>
+    <p class="sec-body">The world we are working to build — and the conviction that drives every decision we make.</p>
+    <div class="vm-grid">
+      <div class="card statement">"To be the definitive architect of the world's magnetic infrastructure, where 3D-printed superconductivity powers a sustainable, high-performance future across energy, science, and technology."</div>
+      <div>
+        <div class="pillar"><div class="pillar-ico">🧲</div><div><h4>Redefine What Magnets Can Do</h4><p>We believe superconducting magnets will become the foundational technology of the 21st century. eThrust exists to accelerate that transition across every industry that demands extreme performance.</p></div></div>
+        <div class="pillar"><div class="pillar-ico">🖨️</div><div><h4>Manufacturing Without Limits</h4><p>Through 3D printing and advanced deposition technologies, we eliminate the design constraints that have held superconductor engineering back for decades — unlocking entirely new classes of HTS products.</p></div></div>
+        <div class="pillar"><div class="pillar-ico">🌐</div><div><h4>Global Impact at Scale</h4><p>We are building the platform — the materials science, the processes, and the products — that will power a superconducting world across every sector that demands extreme field performance.</p></div></div>
+        <div class="pillar"><div class="pillar-ico">🔬</div><div><h4>Science to System</h4><p>We close the gap between fundamental superconductor research and deployed commercial products — translating laboratory breakthroughs into reliable, field-ready engineering systems.</p></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MISSION -->
+<div id="pg-mission" class="page">
+  <div class="wrap" style="padding-top:4rem;padding-bottom:4rem">
+    <div class="sec-label">// mission.md</div>
+    <h1 class="sec-title">Our <span class="c">Mission</span></h1>
+    <div class="gline"></div>
+    <p class="sec-body">To accelerate the global transition to high-field applications by engineering the next generation of HTS magnets. We bypass the limitations of traditional manufacturing through 3D-printing and no-insulation technologies, delivering compact, quench-safe, and extreme-field solutions.</p>
+    <div class="ga" style="margin-top:2.5rem">
+      <div class="card mcard"><h3>✦ Accelerate Transition</h3><p>Drive the global shift from conventional electromagnets to high-temperature superconducting systems — faster, at lower cost, and at the scale that meaningful technological change demands.</p></div>
+      <div class="card mcard"><h3>✦ Transcend Manufacturing Limits</h3><p>Leverage 3D-printing and no-insulation winding to shatter design constraints — opening geometries and performance regimes previously out of reach for HTS magnet engineering.</p></div>
+      <div class="card mcard"><h3>✦ Quench-Safe by Design</h3><p>Deliver magnets with intrinsic quench protection through NI winding architecture — eliminating the single greatest reliability concern in HTS deployment.</p></div>
+      <div class="card mcard"><h3>✦ Extreme-Field Engineering</h3><p>Push the achievable boundaries of magnetic field strength — engineering solutions that operate where conventional magnets simply cannot.</p></div>
+      <div class="card mcard"><h3>✦ Compact &amp; Deployable</h3><p>Deliver 50%+ mass reduction over first-generation designs, enabling HTS technology to reach platforms where weight and volume have historically been prohibitive barriers.</p></div>
+      <div class="card mcard"><h3>✦ Research to Reality</h3><p>Bridge the gap between academic superconductor research and deployable commercial products — ensuring that scientific breakthroughs translate into reliable, field-ready engineering systems.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- PRODUCTS -->
+<div id="pg-products" class="page">
+  <div class="wrap" style="padding-top:4rem;padding-bottom:4rem">
+    <div class="sec-label">// products.catalog</div>
+    <h1 class="sec-title">Product <span class="c">Generations</span></h1>
+    <div class="gline"></div>
+    <p class="sec-body">Three generations of HTS magnet technology — from production-ready REBCO windings to the frontier of additive superconductor manufacturing.</p>
+    <div class="prod-tabs">
+      <button class="ptab on" id="pt-2g" onclick="prodTab('2g')">2G — REBCO</button>
+      <button class="ptab" id="pt-3g" onclick="prodTab('3g')">3G — Laser-Printed</button>
+      <button class="ptab" id="pt-4g" onclick="prodTab('4g')">4G — DMTAM</button>
+    </div>
+    <div class="ppanel card" id="pp-2g">
+      <div class="badge b-green">● Available Now</div>
+      <div class="prod-title">2G REBCO Wound Magnets</div>
+      <p class="prod-sub">Production-grade HTS magnets with 26.86 T demonstrated field. Quench-safe NI winding. 50% lighter than 1G systems.</p>
+      <div class="g3">
+        <div class="spec-col"><h5>Specifications</h5><ul class="slist"><li><strong>Operating Temp:</strong> 38 K</li><li><strong>Field:</strong> 26.86 T demonstrated</li><li><strong>Mass:</strong> 26 kg — 50% lighter than 1G</li><li><strong>Winding:</strong> No-Insulation (NI)</li><li><strong>Conductor:</strong> REBCO coated tape</li></ul></div>
+        <div class="spec-col"><h5>Applications</h5><ul class="slist"><li>Compact Fusion Reactor Coils</li><li>NMR Spectroscopy up to 1.3 GHz</li><li>Particle Accelerator Dipoles</li><li>High-Field MRI (11.7 T+)</li><li>AFMPDT Space Thrusters</li></ul></div>
+        <div class="spec-col"><h5>Key Advantages</h5><ul class="slist"><li>Intrinsic quench protection</li><li>Single-phase power supply</li><li>Compact mobile form factor</li><li>Proven in lab validation</li></ul></div>
+      </div>
+    </div>
+    <div class="ppanel card gold-c" id="pp-3g" style="display:none">
+      <div class="badge b-gold">◉ In Development — 2027–2028</div>
+      <div class="prod-title">3G Laser-Printed HTS</div>
+      <p class="prod-sub">Pulsed laser deposition of REBCO traces onto curved formers. Zero internal joints. Seamless conductor paths. Custom geometries previously impossible.</p>
+      <div class="g3">
+        <div class="spec-col"><h5>Specifications</h5><ul class="slist"><li><strong>Method:</strong> Pulsed Laser Deposition</li><li><strong>Joints:</strong> Zero internal joints</li><li><strong>Current Density:</strong> 0.3 × 10⁴ A/cm²</li><li><strong>Formers:</strong> Curved 3D surfaces</li></ul></div>
+        <div class="spec-col"><h5>Breakthroughs</h5><ul class="slist"><li>Continuous superconducting path</li><li>Custom coil on non-planar surfaces</li><li>Saddle, helical &amp; toroidal shapes</li><li>Higher reliability, zero joint resistance</li></ul></div>
+        <div class="spec-col"><h5>Target Applications</h5><ul class="slist"><li>Compact tokamak coils</li><li>High-uniformity NMR magnets</li><li>AFMPDT thruster coils</li><li>Conformal SC antennas</li></ul></div>
+      </div>
+    </div>
+    <div class="ppanel card" id="pp-4g" style="display:none;border-color:rgba(167,139,250,0.3)">
+      <div class="badge b-purp">◎ Research Stage — 2030+ Roadmap</div>
+      <div class="prod-title">4G DMTAM 3D-Printed HTS</div>
+      <p class="prod-sub">Direct Multi-material Thermal Additive Manufacturing. Print + Melt + Grow = One Step. True additive manufacturing with integrated cooling channels and arbitrary 3D shapes.</p>
+      <div class="g3">
+        <div class="spec-col"><h5>Specifications</h5><ul class="slist"><li><strong>Method:</strong> DMTAM multi-material</li><li><strong>Current Density:</strong> 1.8 × 10⁴ A/cm²</li><li><strong>Crystal:</strong> Single-crystal in-process</li><li><strong>Geometry:</strong> Arbitrary 3D shapes</li></ul></div>
+        <div class="spec-col"><h5>DMTAM Process</h5><ul class="slist"><li>Print — multi-material extrusion</li><li>Melt — controlled thermal anneal</li><li>Grow — single crystal formation</li><li>One step: design to magnet</li></ul></div>
+        <div class="spec-col"><h5>Vision</h5><ul class="slist"><li>Arbitrary fusion confinement coils</li><li>Integrated cryogenic channels</li><li>On-demand research magnets</li><li>Space-optimised assemblies</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APPLICATIONS -->
+<div id="pg-applications" class="page">
+  <div class="wrap" style="padding-top:4rem;text-align:center">
+    <div class="sec-label">// applications.frontier</div>
+    <h1 class="sec-title">Where <span class="g">HTS</span> Rewrites <span class="c">the Rules</span></h1>
+    <div class="gline gold" style="margin:1.2rem auto"></div>
+    <p class="sec-body" style="margin:0 auto">From igniting artificial suns to propelling spacecraft through the void — our superconducting magnets are the silent engine behind humanity's most ambitious technology.</p>
+  </div>
+  <div class="app-tabs">
+    <button class="atab on" id="at-fusion"   onclick="appTab('fusion')">☀️ Nuclear Fusion</button>
+    <button class="atab" id="at-fluxpump" onclick="appTab('fluxpump')">⚡ Flux Pump</button>
+    <button class="atab" id="at-motors"   onclick="appTab('motors')">⚙️ HTS Motors</button>
+    <button class="atab" id="at-thruster" onclick="appTab('thruster')">🚀 AFMPDT Thrusters</button>
+    <button class="atab" id="at-nmr"      onclick="appTab('nmr')">🔬 NMR Spectroscopy</button>
+    <button class="atab" id="at-power"    onclick="appTab('power')">🔋 Power Distribution</button>
+    <button class="atab" id="at-mri"      onclick="appTab('mri')">🏥 High-Field MRI</button>
+    <button class="atab" id="at-maglev"   onclick="appTab('maglev')">🚄 Maglev Trains</button>
+  </div>
+  <div class="wrap" style="padding-bottom:4rem;margin-top:2rem">
+    <div class="apanel" id="ap-fusion" style="display:grid;grid-template-columns:1fr 1fr;gap:2.5rem;align-items:start">
+      <div><div class="atag">// ENERGY.UNLIMITED</div><h2>Igniting the <span>Artificial Sun</span> — Nuclear Fusion</h2><p>HTS magnets are the linchpin of compact tokamak and stellarator fusion reactors. They generate the immense magnetic fields needed to confine superheated plasma at over 100 million °C.</p><p>eThrust's NI-wound REBCO coils provide the field strength, stability, and compactness that makes privately-funded fusion viable. At 26.86 T, our 2G magnets are well within the range required for breakeven plasma confinement in compact designs.</p><button class="btn btn-p" style="margin-top:0.5rem" onclick="go('contact')">Enquire for Fusion →</button></div>
+      <div><div class="app-icon">☀️</div><div class="aspec"><div class="aspec-num">26T</div><div><h4>Peak Field Strength</h4><p>2G REBCO coils achieving 26.86 T — sufficient for compact fusion confinement</p></div></div><div class="aspec"><div class="aspec-num">38K</div><div><h4>Operating Temperature</h4><p>Single-phase cryocooling — no liquid helium infrastructure required</p></div></div><div class="aspec"><div class="aspec-num">NI</div><div><h4>Quench-Safe</h4><p>NI winding eliminates catastrophic quench failure modes critical in fusion environments</p></div></div></div>
+    </div>
+    <div class="apanel" id="ap-fluxpump">
+      <div><div class="atag">// CURRENT.PERPETUAL</div><h2>Contactless Current Injection — <span>Flux Pumps</span></h2><p>A superconducting flux pump injects DC current into a closed superconducting circuit without electrical contact — eliminating resistive connections that generate heat and compromise cryogenic performance.</p><p>eThrust HTS magnets serve as core persistent-mode magnets in flux pump systems, maintaining stable magnetic fields indefinitely. Our NI winding architecture accommodates current redistribution without localised heating.</p><button class="btn btn-p" style="margin-top:0.5rem" onclick="go('contact')">Enquire for Flux Pumps →</button></div>
+      <div><div class="app-icon">⚡</div><div class="aspec"><div class="aspec-num">0Ω</div><div><h4>Zero Resistive Connections</h4><p>Contactless current injection — all resistive heat sources eliminated from the cold circuit</p></div></div><div class="aspec"><div class="aspec-num">∞</div><div><h4>Persistent Mode</h4><p>Once charged, REBCO coils maintain field with essentially zero decay for days or indefinitely</p></div></div><div class="aspec"><div class="aspec-num">NI</div><div><h4>Stable Redistribution</h4><p>NI winding enables safe redistribution of current flux essential for pump-integrated designs</p></div></div></div>
+    </div>
+    <div class="apanel" id="ap-motors">
+      <div><div class="atag">// TORQUE.REDEFINED</div><h2>The New Class of <span>HTS Electric Motors</span></h2><p>Superconducting motors achieve power densities 3–5× higher than conventional motors while operating at near-perfect efficiency. By replacing copper stators with HTS coils, losses drop to near-zero — producing extraordinary torque from compact, lightweight assemblies.</p><p>eThrust's 3G laser-printed coils, conforming to curved motor geometries, are particularly well-suited to the next generation of axial-flux and radial-flux HTS machines.</p><button class="btn btn-p" style="margin-top:0.5rem" onclick="go('contact')">Enquire for HTS Motors →</button></div>
+      <div><div class="app-icon">⚙️</div><div class="aspec"><div class="aspec-num">5×</div><div><h4>Power Density Gain</h4><p>HTS motors achieve 3–5× higher power density versus copper-wound equivalents at the same weight</p></div></div><div class="aspec"><div class="aspec-num">η≈1</div><div><h4>Near-Zero Losses</h4><p>Superconducting windings eliminate I²R losses — approaching theoretical peak motor efficiency</p></div></div><div class="aspec"><div class="aspec-num">3G</div><div><h4>Conformal Geometry</h4><p>Laser-printed coils conform to curved stator surfaces — enabling novel axial-flux machine designs</p></div></div></div>
+    </div>
+    <div class="apanel" id="ap-thruster">
+      <div><div class="atag">// PROPULSION.BEYOND</div><h2>Propelling Humanity Through the Cosmos — <span>AFMPDT</span></h2><p>The Applied-Field Magnetoplasmadynamic Thruster (AFMPDT) delivers high specific impulse for efficient long-duration deep-space missions. Performance scales directly with applied magnetic field strength.</p><p>eThrust's compact 26 kg REBCO coil assemblies provide the powerful applied field at a fraction of conventional coil mass — a critical advantage where every kilogram determines mission feasibility.</p><button class="btn btn-p" style="margin-top:0.5rem" onclick="go('contact')">Enquire for Space Propulsion →</button></div>
+      <div><div class="app-icon">🚀</div><div class="aspec"><div class="aspec-num">26kg</div><div><h4>Ultra-Lightweight Assembly</h4><p>50% lighter than first-generation systems — critical for launch mass budgets on deep-space missions</p></div></div><div class="aspec"><div class="aspec-num">Isp↑</div><div><h4>Enhanced Specific Impulse</h4><p>Higher applied field directly improves AFMPDT Isp — reducing propellant mass for deep-space missions</p></div></div><div class="aspec"><div class="aspec-num">38K</div><div><h4>Cryocooler-Ready</h4><p>No liquid helium required — standard space-grade cryocoolers maintain operating temperature on-orbit</p></div></div></div>
+    </div>
+    <div class="apanel" id="ap-nmr">
+      <div><div class="atag">// STRUCTURE.REVEALED</div><h2>Seeing Molecules — <span>NMR Spectroscopy</span></h2><p>NMR spectroscopy is the gold standard for molecular structure determination in chemistry, biochemistry, and pharmaceutical research. Resolution scales with magnetic field — and eThrust HTS magnets reach the extreme fields that the most demanding research demands.</p><p>Our 2G REBCO coils support NMR systems up to 1.3 GHz (30.5 T equivalent). Persistent-mode operation ensures ultra-low field drift for multi-hour acquisition experiments.</p><button class="btn btn-p" style="margin-top:0.5rem" onclick="go('contact')">Enquire for NMR Systems →</button></div>
+      <div><div class="app-icon">🔬</div><div class="aspec"><div class="aspec-num">1.3GHz</div><div><h4>NMR Frequency Support</h4><p>Equivalent to 30.5 T — resolving protein structures at the frontier of biophysical research</p></div></div><div class="aspec"><div class="aspec-num">0.01Hz</div><div><h4>Ultra-Low Field Drift</h4><p>Persistent-mode stability enables multi-hour NMR acquisitions without field-lock drift</p></div></div><div class="aspec"><div class="aspec-num">26.86T</div><div><h4>Record-Class Field</h4><p>Places eThrust coils among the highest-field NMR-capable magnets available commercially</p></div></div></div>
+    </div>
+    <div class="apanel" id="ap-power">
+      <div><div class="atag">// GRID.REINVENTED</div><h2>Zero-Loss Power — <span>The Superconducting Grid</span></h2><p>eThrust REBCO coils serve as the active element in resistive Superconducting Fault Current Limiters (SFCLs), transitioning from superconducting to resistive state within microseconds of a fault — faster than any mechanical breaker.</p><p>HTS cables carry 5–10× more current than copper at the same diameter, enabling city-scale power corridors in existing conduits. Our compact 2G architecture is ideal for urban grid retrofits.</p><button class="btn btn-p" style="margin-top:0.5rem" onclick="go('contact')">Enquire for Power Applications →</button></div>
+      <div><div class="app-icon">🔋</div><div class="aspec"><div class="aspec-num">μs</div><div><h4>Microsecond Fault Response</h4><p>SFCL transition limits fault currents before equipment damage — faster than any mechanical breaker</p></div></div><div class="aspec"><div class="aspec-num">10×</div><div><h4>Current Density Advantage</h4><p>HTS cables carry 5–10× more current than copper at equivalent cross-section</p></div></div><div class="aspec"><div class="aspec-num">0W</div><div><h4>Zero Resistive Losses</h4><p>Superconducting transmission lines eliminate I²R heating — recovering GWh annually</p></div></div></div>
+    </div>
+    <div class="apanel" id="ap-mri">
+      <div><div class="atag">// DIAGNOSIS.DEEPER</div><h2>Resolution Beyond Sight — <span>High-Field MRI</span></h2><p>With eThrust HTS technology, fields of 11.7 T and beyond become achievable in compact systems — revealing sub-millimetre anatomy, metabolic activity, and molecular biomarkers invisible to conventional scanners.</p><p>The reduced footprint versus liquid-helium-cooled systems makes ultra-high-field MRI in hospital settings a realistic proposition. Persistent-mode operation ensures field homogeneity below 1 ppm.</p><button class="btn btn-p" style="margin-top:0.5rem" onclick="go('contact')">Enquire for MRI Applications →</button></div>
+      <div><div class="app-icon">🏥</div><div class="aspec"><div class="aspec-num">11.7T</div><div><h4>Ultra-High Field MRI</h4><p>Fields from 7 T to 11.7 T+ unlocking sub-millimetre imaging resolution for neuroscience</p></div></div><div class="aspec"><div class="aspec-num">1ppm</div><div><h4>Field Homogeneity</h4><p>Persistent-mode REBCO coils achieve &lt;1 ppm homogeneity for clinical-grade imaging</p></div></div><div class="aspec"><div class="aspec-num">↓Size</div><div><h4>Compact Form Factor</h4><p>No liquid helium — enabling high-field MRI deployment in standard hospital facilities</p></div></div></div>
+    </div>
+    <div class="apanel" id="ap-maglev">
+      <div><div class="atag">// FRICTION.ABOLISHED</div><h2>Floating Above the Rails — <span>Maglev Transportation</span></h2><p>Superconducting maglev achieves levitation through the Meissner effect — HTS coils expel magnetic flux, creating stable levitation without active control. This enables frictionless, near-silent transport exceeding 600 km/h.</p><p>eThrust's compact HTS coil assemblies serve as onboard levitation and propulsion magnets in next-generation maglev vehicles with substantially reduced cryogenic system mass versus traditional LTS maglev.</p><button class="btn btn-p" style="margin-top:0.5rem" onclick="go('contact')">Enquire for Maglev Systems →</button></div>
+      <div><div class="app-icon">🚄</div><div class="aspec"><div class="aspec-num">600+</div><div><h4>km/h Achievable Speed</h4><p>HTS maglev removes mechanical friction entirely, enabling commercially viable hypervelocity transit</p></div></div><div class="aspec"><div class="aspec-num">Meissner</div><div><h4>Passive Levitation</h4><p>Flux-pinning enables passive, stable levitation without active feedback control systems</p></div></div><div class="aspec"><div class="aspec-num">3G</div><div><h4>Conformal Guideway Coils</h4><p>Laser-printed 3G coils conform to complex geometries — ideal for advanced linear motor integration</p></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- TEAM -->
+<div id="pg-team" class="page">
+  <div class="wrap" style="padding-top:4rem;padding-bottom:4rem">
+    <div class="sec-label">// team.manifest</div>
+    <h1 class="sec-title">The <span class="c">Architects</span></h1>
+    <div class="gline"></div>
+    <p class="sec-body">The minds behind eThrust — engineers, scientists, and visionaries building the superconducting future.</p>
+    <div class="team-grid">
+      <div class="card tcard">
+        <div class="av">JS</div>
+        <div class="tname">Jishnu Asokakumar Sreekala</div>
+        <div class="trole">Co-Founder</div>
+        <div class="tdesc">Driving the vision of next-generation HTS magnet design and the company's technical and strategic direction. Expert in RAMS engineering, functional safety, and superconducting systems.</div>
+      </div>
+      <div class="card tcard">
+        <div class="av">VS</div>
+        <div class="tname">Vishnu Asokakumar Sreekala</div>
+        <div class="trole">Co-Founder</div>
+        <div class="tdesc">Leading eThrust's business development, operational strategy, and partnership ecosystem. Instrumental in shaping the commercial roadmap for HTS product deployment.</div>
+      </div>
+      <div class="card tcard">
+        <div class="av gd">KK</div>
+        <div class="tname">Kishore Kumar Kammara</div>
+        <div class="trole gd">Chief Technology Officer</div>
+        <div class="tdesc">Spearheading the R&amp;D program from 2G REBCO systems through to 4G DMTAM additive manufacturing. Leads the technical team in translating cutting-edge superconductor research into engineered products.</div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:2.5rem">
+      <p style="color:#7ea8c4;margin-bottom:1.2rem">We're building the team that will build the future.</p>
+      <button class="btn btn-p" onclick="go('joinus')">View Open Positions →</button>
+    </div>
+  </div>
+</div>
+
+<!-- JOIN US -->
+<div id="pg-joinus" class="page">
+  <div class="wrap" style="padding-top:4rem;padding-bottom:4rem">
+    <div class="sec-label">// join.us</div>
+    <h1 class="sec-title">Build the <span class="c">Future</span> With Us</h1>
+    <div class="gline"></div>
+    <p class="sec-body">We are assembling a team of the most driven engineers, physicists, and innovators on the planet. If you want to work on technology that matters at the deepest level — this is it.</p>
+    <div class="join-grid">
+      <div class="card jcard">
+        <h3>🚀 Get <span>Onboard</span></h3>
+        <p>Join the eThrust team as a full-time engineer, researcher, or technology professional. We are looking for people as obsessed with superconductors as we are.</p>
+        <ul class="jlist">
+          <li>HTS / LTS Magnet Design Engineers</li>
+          <li>Cryogenic Systems Engineers</li>
+          <li>Additive Manufacturing Researchers</li>
+          <li>Power Electronics Specialists</li>
+          <li>Materials Scientists (REBCO, BSCCO)</li>
+          <li>Mechanical Design Engineers</li>
+          <li>Control Systems Engineers</li>
+        </ul>
+        <p class="jnote">We offer competitive compensation, equity participation, and the rare opportunity to work on technology that will shape the next century.</p>
+        <button class="btn btn-p" onclick="go('contact')">Apply Now →</button>
+      </div>
+      <div class="card gold-c jcard">
+        <h3>🤝 <span>Partner</span> With Us</h3>
+        <p>We actively seek research collaborations, industrial partnerships, and investment relationships with organisations that share our ambition to deploy superconducting technology at scale.</p>
+        <ul class="jlist">
+          <li>University &amp; Research Institute Collaborations</li>
+          <li>Fusion Energy Companies (tokamak / stellarator)</li>
+          <li>Space Propulsion &amp; Satellite Manufacturers</li>
+          <li>Medical Imaging OEMs (MRI, NMR)</li>
+          <li>Railway &amp; Maglev Consortia</li>
+          <li>Power Grid &amp; Utilities Companies</li>
+          <li>Deep Technology Investors &amp; VCs</li>
+        </ul>
+        <p class="jnote">Whether you need custom magnets, co-development, licensing, or co-investment — we are open to conversations about shaping the superconducting future together.</p>
+        <button class="btn btn-s" onclick="go('contact')">Discuss Partnership →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTACT -->
+<div id="pg-contact" class="page">
+  <div class="wrap" style="padding-top:4rem;padding-bottom:4rem">
+    <div class="sec-label">// contact.us</div>
+    <h1 class="sec-title">Open a <span class="c">Channel</span></h1>
+    <div class="gline"></div>
+    <p class="sec-body">Whether you need a custom magnet system, want to explore a partnership, or are ready to join the team — we want to hear from you.</p>
+    <div class="cgrid">
+      <div>
+        <div class="card" style="margin-bottom:1.2rem">
+          <div class="cinfo-title">Get in Touch</div>
+          <div class="citem"><div class="cico">📧</div><div><div class="clbl">Primary Email</div><div class="cval"><a href="mailto:ethrust@ethrust.co.in">ethrust@ethrust.co.in</a></div></div></div>
+          <div class="citem"><div class="cico">📧</div><div><div class="clbl">Support Email</div><div class="cval"><a href="mailto:ethrusts@gmail.com">ethrusts@gmail.com</a></div></div></div>
+          <div class="citem"><div class="cico">🌐</div><div><div class="clbl">Website</div><div class="cval"><a href="https://www.ethrust.co.in" target="_blank">www.ethrust.co.in</a></div></div></div>
+          <div class="citem"><div class="cico">🔗</div><div><div class="clbl">LinkedIn</div><div class="cval"><a href="https://www.linkedin.com/company/111326668/" target="_blank">linkedin.com/company/eThrust</a></div></div></div>
+        </div>
+        <div class="card">
+          <div class="cinfo-title" style="color:#ffc107">Response Time</div>
+          <p style="font-size:0.87rem;color:#7ea8c4;line-height:1.65">We aim to respond to all enquiries within 48 hours. For urgent technical or partnership discussions, please mark your subject line accordingly.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-family:'Orbitron',monospace;font-size:0.95rem;font-weight:700;margin-bottom:1.4rem">Send a Message</div>
+        <form class="cform" id="cform">
+          <div class="frow">
+            <div class="fg"><label>Full Name *</label><input type="text" id="f-name" required placeholder="Your name"></div>
+            <div class="fg"><label>Organisation</label><input type="text" id="f-org" placeholder="Company / Institution"></div>
+          </div>
+          <div class="fg"><label>Email Address *</label><input type="email" id="f-email" required placeholder="your@email.com"></div>
+          <div class="fg">
+            <label>Subject *</label>
+            <select id="f-sub" required>
+              <option value="">Select enquiry type...</option>
+              <option>Product Enquiry — 2G REBCO</option>
+              <option>Product Enquiry — 3G Laser-Printed</option>
+              <option>Product Enquiry — 4G DMTAM</option>
+              <option>Application — Nuclear Fusion</option>
+              <option>Application — AFMPDT Thruster</option>
+              <option>Application — MRI / NMR</option>
+              <option>Application — Maglev / Transportation</option>
+              <option>Application — Power Distribution</option>
+              <option>Application — HTS Motors</option>
+              <option>Application — Flux Pump</option>
+              <option>Partnership / Collaboration</option>
+              <option>Investment Enquiry</option>
+              <option>Career / Join Us</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="fg"><label>Message *</label><textarea id="f-msg" rows="5" required placeholder="Describe your project, requirements, or enquiry..."></textarea></div>
+          <button type="submit" class="fsub">⟶ TRANSMIT MESSAGE</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="foot-brand"><span style="color:#00e5ff">e</span><span style="color:#ffc107">Thrust</span></div>
+  <div class="foot-copy">© 2025 eThrust. A Digital Foundry of High-Temperature Superconducting Magnets &amp; Products. All rights reserved.</div>
+  <div class="foot-links">
+    <a href="https://www.linkedin.com/company/111326668/" target="_blank">LinkedIn</a>
+    <a href="mailto:ethrust@ethrust.co.in">Email</a>
+    <a href="#" onclick="go('contact');return false">Contact</a>
+  </div>
+</footer>
+
+</div><!-- /app -->
+
+<script>
+/* STARFIELD */
+(function(){
+  var c=document.getElementById('stars'),ctx=c.getContext('2d'),W,H,S=[];
+  function resize(){W=c.width=innerWidth;H=c.height=innerHeight;}
+  function init(){S=[];for(var i=0;i<300;i++){S.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.1+0.2,a:Math.random(),da:(Math.random()-.5)*.004,vx:(Math.random()-.5)*.035,vy:(Math.random()-.5)*.035,col:Math.random()>.9?'255,193,7':Math.random()>.85?'167,139,250':'200,230,255'});}}
+  function draw(){ctx.clearRect(0,0,W,H);for(var i=0;i<S.length;i++){var s=S[i];s.a+=s.da;if(s.a>1||s.a<.05)s.da*=-1;s.x+=s.vx;s.y+=s.vy;if(s.x<0)s.x=W;if(s.x>W)s.x=0;if(s.y<0)s.y=H;if(s.y>H)s.y=0;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle='rgba('+s.col+','+s.a+')';ctx.fill();}if(Math.random()<.003){var sx=Math.random()*W*.7,sy=Math.random()*H*.4,len=100+Math.random()*110,g=ctx.createLinearGradient(sx,sy,sx+len,sy+len*.35);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(.5,'rgba(200,240,255,.8)');g.addColorStop(1,'rgba(255,255,255,0)');ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+len,sy+len*.35);ctx.strokeStyle=g;ctx.lineWidth=1.5;ctx.stroke();}requestAnimationFrame(draw);}
+  resize();init();draw();window.addEventListener('resize',function(){resize();init();});
+})();
+
+/* ROUTER */
+var PAGES=['home','vision','mission','products','applications','team','joinus','contact'];
+function go(id){
+  for(var i=0;i<PAGES.length;i++){
+    var el=document.getElementById('pg-'+PAGES[i]);
+    var nb=document.getElementById('nb-'+PAGES[i]);
+    if(el)el.style.display='none';
+    if(nb)nb.classList.remove('on');
+  }
+  var pg=document.getElementById('pg-'+id);
+  if(pg)pg.style.display=(id==='home')?'flex':'block';
+  var nb=document.getElementById('nb-'+id);
+  if(nb)nb.classList.add('on');
+  window.scrollTo(0,0);
+  var mob=document.getElementById('mobnav');
+  if(mob)mob.style.display='none';
+}
+
+/* PRODUCT TABS */
+function prodTab(id){
+  ['2g','3g','4g'].forEach(function(x){
+    var p=document.getElementById('pp-'+x),t=document.getElementById('pt-'+x);
+    if(p)p.style.display='none';
+    if(t)t.classList.remove('on');
+  });
+  var p=document.getElementById('pp-'+id),t=document.getElementById('pt-'+id);
+  if(p)p.style.display='block';
+  if(t)t.classList.add('on');
+}
+
+/* APP TABS */
+var APPS=['fusion','fluxpump','motors','thruster','nmr','power','mri','maglev'];
+function appTab(id){
+  APPS.forEach(function(x){
+    var p=document.getElementById('ap-'+x),t=document.getElementById('at-'+x);
+    if(p)p.style.display='none';
+    if(t)t.classList.remove('on');
+  });
+  var p=document.getElementById('ap-'+id),t=document.getElementById('at-'+id);
+  if(p){p.style.display='grid';p.style.gridTemplateColumns='1fr 1fr';p.style.gap='2.5rem';p.style.alignItems='start';}
+  if(t)t.classList.add('on');
+}
+
+/* MOBILE */
+function toggleMob(){var m=document.getElementById('mobnav');m.style.display=m.style.display==='flex'?'none':'flex';}
+function closeMob(){document.getElementById('mobnav').style.display='none';}
+
+/* CONTACT FORM */
+document.getElementById('cform').addEventListener('submit',function(e){
+  e.preventDefault();
+  var n=document.getElementById('f-name').value.trim(),em=document.getElementById('f-email').value.trim(),s=document.getElementById('f-sub').value,o=document.getElementById('f-org').value.trim(),m=document.getElementById('f-msg').value.trim();
+  if(!n||!em||!s||!m)return;
+  var body='Name: '+n+'\nOrganisation: '+(o||'N/A')+'\nEmail: '+em+'\n\nSubject: '+s+'\n\nMessage:\n'+m;
+  window.location.href='mailto:ethrust@ethrust.co.in?subject='+encodeURIComponent('[eThrust Enquiry] '+s)+'&body='+encodeURIComponent(body);
+});
+
+/* INIT */
+go('home');
+</script>
+</body>
+</html>
